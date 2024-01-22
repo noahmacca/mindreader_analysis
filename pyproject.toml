@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "mindreader-analysis"
+version = "0.1.0"
+description = ""
+authors = ["Noah MacCallum <noahmacca@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^1.26.3"
+pandas = "^2.2.0"
+matplotlib = "^3.8.2"
+seaborn = "^0.13.1"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
