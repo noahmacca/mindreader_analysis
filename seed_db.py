@@ -1,6 +1,8 @@
 # %%
 import os
 import pandas as pd
+import base64
+
 
 # Load images
 image_path = "./data/images"
@@ -10,9 +12,11 @@ image_data = []
 for image_file in image_files:
     with open(os.path.join(image_path, image_file), "rb") as file:
         binary_data = file.read()
+        base64_encoded_data = base64.b64encode(binary_data)
+        base64_string = base64_encoded_data.decode("utf-8")
         id = int(image_file.split("new_index_")[1].split(".")[0])
         label = image_file.split("_orig")[0]
-        image_data.append({"id": id, "label": label, "data": binary_data})
+        image_data.append({"id": id, "label": label, "data": base64_string})
 
 df_image = pd.DataFrame(image_data)
 
@@ -143,7 +147,6 @@ from tqdm import tqdm
 
 df_act.sort_values(by=["neuron_id", "img_idx", "class_name", "patch_idx"], inplace=True)
 
-# %%
 tqdm.pandas(desc="Processing neuron activations")
 # Apply the progress bar to the groupby operation
 df_neuron_image_activations = (
@@ -152,6 +155,9 @@ df_neuron_image_activations = (
     .reset_index()
 )
 
+df_neuron_image_activations["max_activation"] = df_neuron_image_activations[
+    "activation_value"
+].apply(max)
 
 # %%
 from create_db import NeuronImageActivation
@@ -160,6 +166,7 @@ for index, row in df_neuron_image_activations.iterrows():
     neuron_image_activation_data = NeuronImageActivation(
         neuron_id=row["neuron_id"],
         image_id=row["img_idx"],
+        max_activation=row["max_activation"],
         patch_activations=row["activation_value"],
     )
     session.add(neuron_image_activation_data)
