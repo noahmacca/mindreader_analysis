@@ -42,21 +42,23 @@ for img in image_files:
 
 # %%
 # display any neuron img pair
-def plot_neuron_act_for_img(neuron_idx, img_idx, ax_in=None):
+def plot_neuron_act_for_img(neuron_idx, img_idx, act_max=None, ax_in=None):
     ref_df_all_act = df_act[
         (df_act["neuron_idx"] == neuron_idx) & (df_act["img_idx"] == img_idx)
     ]
 
     info = """
     neuron_idx={}
-    class_name={}
-    predicted={}
     img_idx={}
+    label={}
+    predicted={}
+    act_max={}
     """.format(
         neuron_idx,
+        ref_df_all_act["img_idx"].iloc[0],
         ref_df_all_act["class_name"].iloc[0],
         ref_df_all_act["predicted"].iloc[0],
-        ref_df_all_act["img_idx"].iloc[0],
+        round(act_max, 5),
     )
 
     # get activations and scale them to match dims of image
@@ -92,44 +94,65 @@ def plot_neuron_act_for_img(neuron_idx, img_idx, ax_in=None):
         ax_in.set_title(info)
 
 
+# Plot the top n from an input dataframe
+def plot_top_n_neuron_img_pairs(dft, plots_n, filename_in):
+    assert "neuron_idx" in dft.columns, "need 'neuron_idx' col"
+    assert "img_idx" in dft.columns, "need 'img_idx' col"
+    assert "max" in dft.columns, "need 'max' col"
+
+    f, axs = plt.subplots(plots_n, plots_n, figsize=(plots_n * 4, plots_n * 4))
+    for i, ax in enumerate(axs.flatten()):
+        plot_neuron_act_for_img(
+            dft.iloc[i]["neuron_idx"],
+            dft.iloc[i]["img_idx"],
+            dft.iloc[i]["max"],
+            ax_in=ax,
+        )
+
+    f.tight_layout()
+
+    # save
+    timestamp = datetime.now().strftime("%b %d %Y %H-%M-%S")
+    plt.savefig(os.path.join(fig_dir, "{}_{}.png".format(filename_in, timestamp)))
+
+
 # %%
 # Get the most highly activating neuron-image pairs, as defined by the max activating
 # patch for a given neuron anywhere on a certain image.
-df_top_neuron_image_acivations = (
+df_top_neuron_image_activations = (
     df_act.groupby(["img_idx", "class_name", "neuron_idx"])["activation_value"]
     .agg(["mean", "max"])
     .reset_index()
     .sort_values(by=["neuron_idx", "max"], ascending=[True, False])
 )
-df_top_neuron_image_acivations.head()
 
-f, axs = plt.subplots(8, 8, figsize=(32, 32))
-for i, ax in enumerate(axs.flatten()):
-    ref_row_top_act = df_top_neuron_image_acivations.iloc[i]
-    plot_neuron_act_for_img(
-        ref_row_top_act["neuron_idx"], ref_row_top_act["img_idx"], ax_in=ax
-    )
+plot_top_n_neuron_img_pairs(df_top_neuron_image_activations, 3, "top_activations")
 
-f.tight_layout()
+# %%
+# Show all of the top activating neurons for a given image
+img_idx = 122
+dft = df_top_neuron_image_activations[
+    df_top_neuron_image_activations["img_idx"] == img_idx
+].sort_values(by="max", ascending=False)
 
-# save
-timestamp = datetime.now().strftime("%b %d %Y %H-%M-%S")
-filename = os.path.join(fig_dir, f"top_activations_{timestamp}.png")
-plt.savefig(filename)
+plot_top_n_neuron_img_pairs(dft, 3, "top_activations_img={}".format(img_idx))
+
+# %%
+# Show all of the top activating images for a given neuron
 
 
 # %%
 # Load the images and display them alongside their activations
 
 df_act.head()
-df_top_neuron_image_acivations = (
+df_top_neuron_image_activations = (
     df_act[df_act["neuron_idx"] == 0]
     .sort_values(by="activation_value", ascending=False)
     .drop_duplicates(subset="img_idx")
 )
 fig, axs = plt.subplots(4, 4, figsize=(12, 12))
 for i, ax in enumerate(axs.flatten()):
-    row = df_top_neuron_image_acivations.iloc[i]
+    row = df_top_neuron_image_activations.iloc[i]
     img = Image.open(os.path.join(img_path, img_idx_to_img_file_name[row["img_idx"]]))
     ax.imshow(img)
     ax.axis("off")
