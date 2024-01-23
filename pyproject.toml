@@ -11,6 +11,7 @@ numpy = "^1.26.3"
 pandas = "^2.2.0"
 matplotlib = "^3.8.2"
 seaborn = "^0.13.1"
+pyarrow = "^15.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
