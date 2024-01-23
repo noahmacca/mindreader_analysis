@@ -84,12 +84,12 @@ def plot_neuron_act_for_img(neuron_idx, img_idx, act_max=None, ax_in=None):
     if ax_in == None:
         f, ax = plt.subplots(1, 1)
         ax.imshow(img)
-        ax.imshow(scaled, alpha=0.5)
+        ax.imshow(scaled, alpha=0.4)
         ax.axis("off")
         ax.set_title(info)
     else:
         ax_in.imshow(img)
-        ax_in.imshow(scaled, alpha=0.5)
+        ax_in.imshow(scaled, alpha=0.4)
         ax_in.axis("off")
         ax_in.set_title(info)
 
@@ -135,10 +135,16 @@ dft = df_top_neuron_image_activations[
     df_top_neuron_image_activations["img_idx"] == img_idx
 ].sort_values(by="max", ascending=False)
 
-plot_top_n_neuron_img_pairs(dft, 3, "top_activations_img={}".format(img_idx))
+plot_top_n_neuron_img_pairs(dft, 5, "top_activations_img={}".format(img_idx))
 
 # %%
 # Show all of the top activating images for a given neuron
+neuron_idx = 646
+dft = df_top_neuron_image_activations[
+    df_top_neuron_image_activations["neuron_idx"] == neuron_idx
+].sort_values(by="max", ascending=False)
+
+plot_top_n_neuron_img_pairs(dft, 5, "top_activations_neuron={}".format(neuron_idx))
 
 
 # %%
