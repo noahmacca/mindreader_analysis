@@ -12,6 +12,9 @@ pandas = "^2.2.0"
 matplotlib = "^3.8.2"
 seaborn = "^0.13.1"
 pyarrow = "^15.0.0"
+sqlalchemy = "^2.0.25"
+psycopg2 = "^2.9.9"
+python-dotenv = "^1.0.1"
 
 
 [tool.poetry.group.dev.dependencies]
