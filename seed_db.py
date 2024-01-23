@@ -67,3 +67,102 @@ df_image.head()
 
 # %%
 # Write to the image table
+from create_db import Image
+from sqlalchemy.orm import declarative_base, sessionmaker
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+
+load_dotenv()
+
+engine = create_engine(os.getenv("DB_CONN_LOCAL"))
+
+# Assuming df_image is the DataFrame with the image data to be inserted into the database
+Session = sessionmaker(bind=engine)
+session = Session()
+
+for index, row in df_image.iterrows():
+    image_data = Image(
+        id=row["id"],
+        label=row["label"],
+        predicted=row["predicted"],
+        max_activation=row["max_activation"],
+        data=row["data"],
+    )
+    session.add(image_data)
+
+session.commit()
+session.close()
+
+# %%
+# now do Neurons table
+dft = (
+    df_act.groupby(["neuron_id", "img_idx", "class_name"])["activation_value"]
+    .max()
+    .reset_index()
+    .sort_values(by=["neuron_id", "activation_value"], ascending=[True, False])
+)
+
+
+dft1 = (
+    dft.groupby("neuron_id")
+    .apply(
+        lambda x: ", ".join(
+            x.sort_values("activation_value", ascending=False).head(5)["class_name"]
+        )
+    )
+    .reset_index()
+)
+
+dft2 = df_act.groupby(["neuron_id"])["activation_value"].max().reset_index()
+
+df_neuron = pd.merge(dft1, dft2, how="left", left_on="neuron_id", right_on="neuron_id")
+df_neuron.columns = ["neuron_id", "highest_activation_classes", "max_activation"]
+df_neuron.head()
+
+# %%
+# Write to Neurons table
+from create_db import Neuron
+
+Session = sessionmaker(bind=engine)
+session = Session()
+
+for index, row in df_neuron.iterrows():
+    image_data = Neuron(
+        id=row["neuron_id"],
+        top_classes=row["highest_activation_classes"],
+        max_activation=row["max_activation"],
+    )
+    session.add(image_data)
+
+session.commit()
+session.close()
+
+# %%
+# Prep neuron_image_activations table
+from tqdm import tqdm
+
+df_act.sort_values(by=["neuron_id", "img_idx", "class_name", "patch_idx"], inplace=True)
+
+# %%
+tqdm.pandas(desc="Processing neuron activations")
+# Apply the progress bar to the groupby operation
+df_neuron_image_activations = (
+    df_act.groupby(["neuron_id", "img_idx", "class_name"])["activation_value"]
+    .progress_apply(list)
+    .reset_index()
+)
+
+
+# %%
+from create_db import NeuronImageActivation
+
+for index, row in df_neuron_image_activations.iterrows():
+    neuron_image_activation_data = NeuronImageActivation(
+        neuron_id=row["neuron_id"],
+        image_id=row["img_idx"],
+        patch_activations=row["activation_value"],
+    )
+    session.add(neuron_image_activation_data)
+
+session.commit()
+session.close()

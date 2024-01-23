@@ -7,7 +7,6 @@ import os
 from PIL import Image
 from datetime import datetime
 
-
 # Load activations
 act_path = "./data/activations"
 img_path = "./data/images"

@@ -33,7 +33,7 @@ class Image(Base):
 class Neuron(Base):
     __tablename__ = "neurons"
     id = Column(String, primary_key=True)
-    description = Column(String)
+    top_classes = Column(String)
     max_activation = Column(Float)
 
 
@@ -68,8 +68,9 @@ image_data = Image(
     max_activation=3.1,
     data=binary_data,
 )
+
 neuron_data = Neuron(
-    id="7_1_211", description="fires on dogs, faces, bugs", max_activation=3.2
+    id="7_1_211", top_classes="fires on dogs, faces, bugs", max_activation=3.2
 )
 neuron_image_activation_data = NeuronImageActivation(
     neuron_id="7_1_211", image_id=1, patch_activations=[1, 0, 0, 122, 255]
