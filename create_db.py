@@ -8,8 +8,6 @@ from sqlalchemy import (
     Float,
     String,
     ForeignKey,
-    Table,
-    LargeBinary,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -22,28 +20,29 @@ Base = declarative_base()
 
 
 class Image(Base):
-    __tablename__ = "images"
+    __tablename__ = "Image"
     id = Column(Integer, primary_key=True, nullable=False)
     label = Column(String, nullable=False)
     predicted = Column(String, nullable=False)
-    max_activation = Column(Float, nullable=False)
+    maxActivation = Column(Float, nullable=False)
     data = Column(String, nullable=False)
 
 
 class Neuron(Base):
-    __tablename__ = "neurons"
+    __tablename__ = "Neuron"
     id = Column(String, primary_key=True, nullable=False)
-    top_classes = Column(String, nullable=False)
-    max_activation = Column(Float, nullable=False)
+    topClasses = Column(String, nullable=False)
+    maxActivation = Column(Float, nullable=False)
 
 
 class NeuronImageActivation(Base):
-    __tablename__ = "neuron_image_activations"
+    __tablename__ = "NeuronImageActivation"
     id = Column(Integer, primary_key=True, nullable=False)
-    neuron_id = Column(String, ForeignKey("neurons.id"), nullable=False)
-    image_id = Column(Integer, ForeignKey("images.id"), nullable=False)
-    max_activation = Column(Float, nullable=False)
-    patch_activations = Column(ARRAY(Float), nullable=False)
+    neuronId = Column(String, ForeignKey("Neuron.id"), nullable=False)
+    imageId = Column(Integer, ForeignKey("Image.id"), nullable=False)
+    maxActivation = Column(Float, nullable=False)
+    patchActivations = Column(ARRAY(Float), nullable=False)
+    patchActivationsScaled = Column(String, nullable=False)
 
 
 # Drop existing tables
