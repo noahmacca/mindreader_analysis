@@ -3,6 +3,14 @@ import os
 import pandas as pd
 import base64
 
+from create_db import Image
+from sqlalchemy.orm import declarative_base, sessionmaker
+from dotenv import load_dotenv
+from sqlalchemy import create_engine
+
+load_dotenv()
+
+engine = create_engine(os.getenv("DB_CONN_LOCAL"))
 
 # Load images
 image_path = "./data/images"
@@ -71,16 +79,6 @@ df_image.head()
 
 # %%
 # Write to the image table
-from create_db import Image
-from sqlalchemy.orm import declarative_base, sessionmaker
-from dotenv import load_dotenv
-from sqlalchemy import create_engine
-
-load_dotenv()
-
-engine = create_engine(os.getenv("DB_CONN_LOCAL"))
-
-# Assuming df_image is the DataFrame with the image data to be inserted into the database
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -89,7 +87,7 @@ for index, row in df_image.iterrows():
         id=row["id"],
         label=row["label"],
         predicted=row["predicted"],
-        max_activation=row["max_activation"],
+        maxActivation=row["max_activation"],
         data=row["data"],
     )
     session.add(image_data)
@@ -133,8 +131,8 @@ session = Session()
 for index, row in df_neuron.iterrows():
     image_data = Neuron(
         id=row["neuron_id"],
-        top_classes=row["highest_activation_classes"],
-        max_activation=row["max_activation"],
+        topClasses=row["highest_activation_classes"],
+        maxActivation=row["max_activation"],
     )
     session.add(image_data)
 
@@ -159,17 +157,72 @@ df_neuron_image_activations["max_activation"] = df_neuron_image_activations[
     "activation_value"
 ].apply(max)
 
+
+# %%
+# Scale the activation value and base64 encode
+# get activations and scale them to match dims of image
+
+import math
+import numpy as np
+import base64
+from PIL import Image
+from io import BytesIO
+
+
+def activations_array_to_b64_img(act_in, target_shape):
+    assert math.sqrt(len(act_in)) % 1 == 0, "act_in should be square!"
+    side_len = int(math.sqrt(len(act_in)))
+    assert (
+        target_shape[0] % side_len == 0
+    ), "target_shape first dim={} should be divisble by side_len={}".format(
+        target_shape[0], side_len
+    )
+    assert (
+        target_shape[1] % side_len == 0
+    ), "target_shape second dim={} should be divisble by side_len={}".format(
+        target_shape[1], side_len
+    )
+    act_in = np.array(act_in).reshape(side_len, side_len)
+    scaled = np.kron(
+        act_in,
+        np.ones((int(target_shape[0] / side_len), int(target_shape[1] / side_len))),
+    )
+
+    scaled = (scaled - scaled.min()) / (scaled.max() - scaled.min())
+
+    # Convert the scaled activations to an image
+    img = Image.fromarray(np.uint8(scaled * 255), "L")
+    buffered = BytesIO()
+    img.save(buffered, format="JPEG")
+    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+    return img_str
+
+
+from PIL import Image
+import matplotlib.pyplot as plt
+
+df_neuron_image_activations["patch_activations_scaled"] = df_neuron_image_activations[
+    "activation_value"
+].progress_apply(lambda x: activations_array_to_b64_img(x[1:], (224, 224)))
+
 # %%
 from create_db import NeuronImageActivation
 
+Session = sessionmaker(bind=engine)
+session = Session()
+
 for index, row in df_neuron_image_activations.iterrows():
+    if (index % 25000 == 0) | (index == len(df_neuron_image_activations) - 1):
+        session.commit()
+        print("done {}/{}".format(index, len(df_neuron_image_activations)))
     neuron_image_activation_data = NeuronImageActivation(
-        neuron_id=row["neuron_id"],
-        image_id=row["img_idx"],
-        max_activation=row["max_activation"],
-        patch_activations=row["activation_value"],
+        neuronId=row["neuron_id"],
+        imageId=row["img_idx"],
+        maxActivation=row["max_activation"],
+        patchActivations=row["activation_value"],
+        patchActivationsScaled=row["patch_activations_scaled"],
     )
     session.add(neuron_image_activation_data)
 
-session.commit()
 session.close()
+print("done")
