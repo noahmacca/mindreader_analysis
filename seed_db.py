@@ -44,7 +44,7 @@ layer_filename_to_id_prefix = {
 
 activation_dfs = []
 
-for file in [i for i in parquet_files if "FC" in i]:
+for file in [i for i in parquet_files if "Activations FC1 7.parquet" in i]:
     # Just the FC layers for now
     print("loading {}...".format(file))
     df_i = pd.read_parquet(os.path.join(act_path, file))
@@ -79,6 +79,8 @@ df_image.head()
 
 # %%
 # Write to the image table
+from create_db import Image
+
 Session = sessionmaker(bind=engine)
 session = Session()
 
@@ -167,6 +169,7 @@ import numpy as np
 import base64
 from PIL import Image
 from io import BytesIO
+import matplotlib.pyplot as plt
 
 
 def activations_array_to_b64_img(act_in, target_shape):
@@ -183,29 +186,28 @@ def activations_array_to_b64_img(act_in, target_shape):
         target_shape[1], side_len
     )
     act_in = np.array(act_in).reshape(side_len, side_len)
-    scaled = np.kron(
-        act_in,
-        np.ones((int(target_shape[0] / side_len), int(target_shape[1] / side_len))),
-    )
 
-    scaled = (scaled - scaled.min()) / (scaled.max() - scaled.min())
+    # Goes from 0-1
+    act_in_norm = (act_in - act_in.min()) / (act_in.max() - act_in.min())
 
     # Convert the scaled activations to an image
-    img = Image.fromarray(np.uint8(scaled * 255), "L")
+    img = Image.fromarray(
+        (plt.cm.inferno(act_in_norm)[:, :, :3] * 255).astype(np.uint8), "RGB"
+    )
+
     buffered = BytesIO()
     img.save(buffered, format="JPEG")
     img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
     return img_str
 
 
-from PIL import Image
-import matplotlib.pyplot as plt
-
 df_neuron_image_activations["patch_activations_scaled"] = df_neuron_image_activations[
     "activation_value"
 ].progress_apply(lambda x: activations_array_to_b64_img(x[1:], (224, 224)))
 
+
 # %%
+# Write to NeuronImageActivation table
 from create_db import NeuronImageActivation
 
 Session = sessionmaker(bind=engine)
