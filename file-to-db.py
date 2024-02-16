@@ -12,13 +12,14 @@ from sqlalchemy import (
     Float,
     String,
     ForeignKey,
+    Boolean,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.dialects.postgresql import ARRAY
 
 load_dotenv()
 
-engine = create_engine(os.getenv("DB_CONN_PROD"))
+engine = create_engine(os.getenv("DB_CONN_LOCAL"))
 
 Base = declarative_base()
 
@@ -43,6 +44,15 @@ class NeuronImageActivation(Base):
     neuronId = Column(String, ForeignKey("Neuron.id"), nullable=False)
     imageId = Column(Integer, ForeignKey("Image.id"), nullable=False)
     maxActivation = Column(Float, nullable=False)
+
+
+class NeuronCorrelation(Base):
+    __tablename__ = "NeuronCorrelation"
+    id = Column(Integer, primary_key=True, nullable=False)
+    startNeuronId = Column(String, ForeignKey("Neuron.id"), nullable=False)
+    endNeuronId = Column(String, ForeignKey("Neuron.id"), nullable=False)
+    corr = Column(Float, nullable=False)
+    isUpstream = Column(Boolean, nullable=False)
 
 
 # Drop existing tables
@@ -117,3 +127,27 @@ for index, row in df_neuron_image_activation.iterrows():
 session.commit()
 session.close()
 print("Done writing to NeuronImageActivation table")
+
+# %%
+# Write NeuronCorrelation table
+df_neuron_correlation = pd.read_csv("./db_outputs/neuron-corrs.csv")
+print("Loaded {} NeuronCorrelation rows".format(len(df_neuron_correlation)))
+
+# Create a session
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Add all rows to the NeuronImageActivation table
+for index, row in df_neuron_correlation.iterrows():
+    neuron_correlation = NeuronCorrelation(
+        startNeuronId=row["startNeuronId"],
+        endNeuronId=row["endNeuronId"],
+        corr=row["corr"],
+        isUpstream=row["isUpstream"],
+    )
+    session.add(neuron_correlation)
+
+# Commit and close the session
+session.commit()
+session.close()
+print("Done writing to NeuronCorrelation table")
