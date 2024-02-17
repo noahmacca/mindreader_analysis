@@ -12,7 +12,7 @@ from sqlalchemy import (
     Float,
     String,
     ForeignKey,
-    Boolean,
+    Enum,
 )
 from sqlalchemy.orm import declarative_base, sessionmaker
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -52,7 +52,9 @@ class NeuronCorrelation(Base):
     startNeuronId = Column(String, ForeignKey("Neuron.id"), nullable=False)
     endNeuronId = Column(String, ForeignKey("Neuron.id"), nullable=False)
     corr = Column(Float, nullable=False)
-    isUpstream = Column(Boolean, nullable=False)
+    layerLocation = Column(
+        Enum("LOWER", "SAME", "HIGHER", name="layer_location_enum"), nullable=False
+    )
 
 
 # Drop existing tables
@@ -143,7 +145,7 @@ for index, row in df_neuron_correlation.iterrows():
         startNeuronId=row["startNeuronId"],
         endNeuronId=row["endNeuronId"],
         corr=row["corr"],
-        isUpstream=row["isUpstream"],
+        layerLocation=row["layerLocation"],
     )
     session.add(neuron_correlation)
 
