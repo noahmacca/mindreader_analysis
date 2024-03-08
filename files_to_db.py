@@ -1,4 +1,5 @@
 # %%
+# TOTALLY DELETE DB AND REPLACE IT WITH WHAT's CONTAINED IN ./db_outputs!
 import os
 import pandas as pd
 
