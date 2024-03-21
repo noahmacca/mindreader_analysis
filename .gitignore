@@ -2,7 +2,7 @@ data/
 script_outputs/
 s3_outputs/
 s3_outputs_1/
-db_scripts/
+*.dump
 db_outputs/
 .DS_Store
 .env
