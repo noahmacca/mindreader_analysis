@@ -149,7 +149,7 @@ df_neuron.head()
 
 # %%
 # Write to Neurons table
-from create_db import Neuron
+from db_scripts.create_db import Neuron
 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -224,7 +224,7 @@ df_neuron_image_activations["binary_data"] = df_neuron_image_activations[
 
 # %%
 # Write to NeuronImageActivation table
-from create_db import NeuronImageActivation
+from db_scripts.create_db import NeuronImageActivation
 
 Session = sessionmaker(bind=engine)
 session = Session()
