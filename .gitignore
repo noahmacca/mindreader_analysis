@@ -2,6 +2,7 @@ data/
 script_outputs/
 s3_outputs/
 s3_outputs_1/
+s3_outputs_2/
 *.dump
 db_outputs/
 .DS_Store
